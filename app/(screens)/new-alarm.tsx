@@ -14,17 +14,17 @@ import * as Notifications from 'expo-notifications';
 //     value: number;
 //     onChange: (value: number) => void;
 //   }
-  
+
 //   function TimeWheel({ value, onChange }: TimeWheelProps) {
 //     const scrollViewRef = useRef<ScrollView>(null);
 //     const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
 //     const itemHeight = 50;
-    
+
 //     // Generate numbers 1-12 with visible numbers before and after
 //     const numbers = Array.from({ length: 5 }, (_, i) => 
 //       ((i - 2 + 12) % 12 || 12).toString().padStart(2, '0')
 //     );
-  
+
 //     // Handle time change and convert to 24-hour format
 //     const handleTimeChange = (index: number) => {
 //       let hour = ((index - 2 + 12) % 12) || 12;
@@ -35,7 +35,7 @@ import * as Notifications from 'expo-notifications';
 //       }
 //       onChange(hour);
 //     };
-  
+
 //     return (
 //       <View style={styles.container}>
 //         {/* Time wheel */}
@@ -76,7 +76,7 @@ import * as Notifications from 'expo-notifications';
 //             ))}
 //           </ScrollView>
 //         </View>
-  
+
 //         {/* Single AM/PM indicator */}
 //         <Text style={[
 //           styles.periodText,
@@ -93,12 +93,12 @@ interface TimeWheelProps {
     value: number;
     onChange: (value: number) => void;
   }
-  
+
   export function TimeWheel({ value, onChange }: TimeWheelProps) {
     const scrollViewRef = useRef<ScrollView>(null);
     const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
     const itemHeight = 50;
-  
+
     // Create a base list for hours (1 to 12)
     const baseNumbers = Array.from({ length: 12 }, (_, i) =>
       (i + 1).toString().padStart(2, '0')
@@ -109,14 +109,14 @@ interface TimeWheelProps {
       { length: baseNumbers.length * loopCount },
       (_, i) => baseNumbers[i % baseNumbers.length]
     );
-  
+
     // On mount, set the scroll offset to the beginning of the middle copy.
     useEffect(() => {
       if (scrollViewRef.current) {
         scrollViewRef.current.scrollTo({ y: baseNumbers.length * itemHeight, animated: false });
       }
     }, []);
-  
+
     // Convert the current index (from the infinite list) to a proper 24-hour value
     const handleTimeChange = (index: number) => {
       const baseCount = baseNumbers.length;
@@ -131,13 +131,13 @@ interface TimeWheelProps {
       }
       onChange(hour);
     };
-  
+
     // When scrolling stops, adjust the offset if needed to keep the loop seamless.
     const onMomentumScrollEnd = (e: any) => {
       const y = e.nativeEvent.contentOffset.y;
       let index = Math.round(y / itemHeight);
       const baseCount = baseNumbers.length;
-  
+
       // If user scrolls too close to the start or end, reposition to the middle copy.
       if (index < baseCount) {
         index += baseCount;
@@ -148,7 +148,7 @@ interface TimeWheelProps {
       }
       handleTimeChange(index);
     };
-  
+
     return (
       <View style={styles.container}>
         {/* Wheel with infinite looping */}
@@ -193,7 +193,7 @@ interface TimeWheelProps {
             ))}
           </ScrollView>
         </View>
-  
+
         {/* Single AM/PM indicator */}
         <Text
           style={[
@@ -283,11 +283,11 @@ export default function NewAlarm() {
     const now = new Date();
     const alarmTime = new Date();
     alarmTime.setHours(hours, minutes, 0, 0);
-    
+
     if (alarmTime <= now) {
       alarmTime.setDate(alarmTime.getDate() + 1);
     }
-  
+
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Alarm',
@@ -444,7 +444,7 @@ async function stopRecording() {
   try {
     await recording.stopAndUnloadAsync();
     const uri = recording.getURI();
-    
+
     if (uri) {
       setTempRecordingUri(uri);
       setIsNamingModalVisible(true);
@@ -475,15 +475,15 @@ async function saveRecordingWithName() {
 
     const newSound = { name: newSoundName.trim(), uri: destination };
     const updatedSounds = [...savedSounds, newSound];
-    
+
     await AsyncStorage.setItem('savedSounds', JSON.stringify(updatedSounds));
     setSavedSounds(updatedSounds);
     setSelectedSound(destination);
-    
+
     setIsNamingModalVisible(false);
     setNewSoundName('');
     setTempRecordingUri(null);
-    
+
     Alert.alert('Success', 'Recording saved successfully!');
   } catch (error) {
     console.error('Failed to save recording:', error);
@@ -598,162 +598,9 @@ async function saveRecordingWithName() {
                   </Text>
                 </TouchableOpacity>
             </View>
-
-            <Modal
-              animationType="slide"
-              transparent={true}
-              visible={isNamingModalVisible}
-              onRequestClose={() => setIsNamingModalVisible(false)}
-            >
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Name Your Recording</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={newSoundName}
-                    onChangeText={setNewSoundName}
-                    placeholder="Enter sound name"
-                    autoFocus
-                  />
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => {
-                        setIsNamingModalVisible(false);
-                        setNewSoundName('');
-                      }}
-                    >
-                      <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.saveButton]}
-                      onPress={saveRecordingWithName}
-                    >
-                      <Text style={styles.saveButtonText}>Save</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </Modal>
-
-            {/* Saved Sounds Modal */}
-            <Modal
-              animationType="slide"
-              transparent={true}
-              visible={isSavedSoundsModalVisible}
-              onRequestClose={() => setIsSavedSoundsModalVisible(false)}
-            >
-              <View style={styles.modalOverlay}>
-                <View style={[styles.modalContent, styles.savedSoundsModal]}>
-                  <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>Saved Sounds</Text>
-                    <TouchableOpacity 
-                      onPress={() => setIsSavedSoundsModalVisible(false)}
-                      style={styles.closeButton}
-                    >
-                      <Ionicons name="close" size={24} color="#000" />
-                    </TouchableOpacity>
-                  </View>
-                  <ScrollView style={styles.savedSoundsList}>
-                    {savedSounds.map((sound, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        style={styles.savedSoundItem}
-                        onPress={() => {
-                          setSelectedSound(sound.uri);
-                          setIsSavedSoundsModalVisible(false);
-                        }}
-                      >
-                        <Text style={styles.savedSoundName}>{sound.name}</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
-                      </TouchableOpacity>
-                    ))}
-                    {savedSounds.length === 0 && (
-                      <Text style={styles.noSoundsText}>No saved sounds yet</Text>
-                    )}
-                  </ScrollView>
-                </View>
-              </View>
-            </Modal>
             )}
           </View>
 
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={isNamingModalVisible}
-            onRequestClose={() => setIsNamingModalVisible(false)}
-          >
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Name Your Recording</Text>
-                <TextInput
-                  style={styles.input}
-                  value={newSoundName}
-                  onChangeText={setNewSoundName}
-                  placeholder="Enter sound name"
-                  autoFocus
-                />
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => {
-                      setIsNamingModalVisible(false);
-                      setNewSoundName('');
-                    }}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.saveButton]}
-                    onPress={saveRecordingWithName}
-                  >
-                    <Text style={styles.saveButtonText}>Save</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={isSavedSoundsModalVisible}
-            onRequestClose={() => setIsSavedSoundsModalVisible(false)}
-          >
-            <View style={styles.modalOverlay}>
-              <View style={[styles.modalContent, styles.savedSoundsModal]}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Saved Sounds</Text>
-                  <TouchableOpacity 
-                    onPress={() => setIsSavedSoundsModalVisible(false)}
-                    style={styles.closeButton}
-                  >
-                    <Ionicons name="close" size={24} color="#000" />
-                  </TouchableOpacity>
-                </View>
-                <ScrollView style={styles.savedSoundsList}>
-                  {savedSounds.map((sound, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.savedSoundItem}
-                      onPress={() => {
-                        setSelectedSound(sound.uri);
-                        setIsSavedSoundsModalVisible(false);
-                      }}
-                    >
-                      <Text style={styles.savedSoundName}>{sound.name}</Text>
-                      <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
-                    </TouchableOpacity>
-                  ))}
-                  {savedSounds.length === 0 && (
-                    <Text style={styles.noSoundsText}>No saved sounds yet</Text>
-                  )}
-                </ScrollView>
-              </View>
-            </View>
-          </Modal>
-          
           {/* Add padding at the bottom to ensure content isn't hidden behind the save button */}
           <View style={styles.bottomPadding} />
         </ScrollView>
@@ -1053,5 +900,10 @@ const styles = StyleSheet.create({
   },
   dayButtonTextSelected: {
     color: '#FFF',
+  },
+  soundSection: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F7',
   },
 });
