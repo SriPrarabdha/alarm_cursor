@@ -599,7 +599,6 @@ async function saveRecordingWithName() {
                 </TouchableOpacity>
             </View>
 
-            {/* Naming Modal */}
             <Modal
               animationType="slide"
               transparent={true}
