@@ -10,85 +10,6 @@ import * as FileSystem from 'expo-file-system';
 import * as Notifications from 'expo-notifications';
 
 
-// interface TimeWheelProps {
-//     value: number;
-//     onChange: (value: number) => void;
-//   }
-
-//   function TimeWheel({ value, onChange }: TimeWheelProps) {
-//     const scrollViewRef = useRef<ScrollView>(null);
-//     const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
-//     const itemHeight = 50;
-
-//     // Generate numbers 1-12 with visible numbers before and after
-//     const numbers = Array.from({ length: 5 }, (_, i) => 
-//       ((i - 2 + 12) % 12 || 12).toString().padStart(2, '0')
-//     );
-
-//     // Handle time change and convert to 24-hour format
-//     const handleTimeChange = (index: number) => {
-//       let hour = ((index - 2 + 12) % 12) || 12;
-//       if (period === 'PM' && hour !== 12) {
-//         hour += 12;
-//       } else if (period === 'AM' && hour === 12) {
-//         hour = 0;
-//       }
-//       onChange(hour);
-//     };
-
-//     return (
-//       <View style={styles.container}>
-//         {/* Time wheel */}
-//         <View style={styles.wheelWrapper}>
-//           <ScrollView
-//             ref={scrollViewRef}
-//             showsVerticalScrollIndicator={false}
-//             snapToInterval={itemHeight}
-//             decelerationRate="fast"
-//             style={[styles.wheel, Platform.select({
-//               web: {
-//                 overflowY: 'scroll',
-//                 scrollSnapType: 'y mandatory',
-//               }
-//             })]}
-//             onScroll={(e) => {
-//               const y = e.nativeEvent.contentOffset.y;
-//               const index = Math.round(y / itemHeight);
-//               handleTimeChange(index);
-//             }}
-//             scrollEventThrottle={16}
-//           >
-//             {numbers.map((num, index) => (
-//               <View 
-//                 key={index} 
-//                 style={[
-//                   styles.wheelItem,
-//                   index === 2 && styles.selectedItem
-//                 ]}
-//               >
-//                 <Text style={[
-//                   styles.wheelText,
-//                   index === 2 ? styles.selectedText : styles.unselectedText
-//                 ]}>
-//                   {num}
-//                 </Text>
-//               </View>
-//             ))}
-//           </ScrollView>
-//         </View>
-
-//         {/* Single AM/PM indicator */}
-//         <Text style={[
-//           styles.periodText,
-//           period === 'AM' ? styles.periodActive : styles.periodInactive
-//         ]}
-//           onPress={() => setPeriod(period === 'AM' ? 'PM' : 'AM')}
-//         >
-//           {period}
-//         </Text>
-//       </View>
-//     );
-//   }
 interface TimeWheelProps {
     value: number;
     onChange: (value: number) => void;
@@ -98,99 +19,66 @@ interface TimeWheelProps {
     const scrollViewRef = useRef<ScrollView>(null);
     const [period, setPeriod] = useState<'AM' | 'PM'>('AM');
     const itemHeight = 50;
+    const halfVisibleItems = 2; // Number of items visible above and below the center
+    const visibleItems = 2 * halfVisibleItems + 1; // Total visible items
 
-    // Create a base list for hours (1 to 12)
-    const baseNumbers = Array.from({ length: 12 }, (_, i) =>
-      (i + 1).toString().padStart(2, '0')
-    );
-    // Repeat the numbers to simulate an infinite loop
-    const loopCount = 3;
-    const loopedNumbers = Array.from(
-      { length: baseNumbers.length * loopCount },
-      (_, i) => baseNumbers[i % baseNumbers.length]
-    );
+    // Generate numbers 1-12
+    const numbers = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
 
-    // On mount, set the scroll offset to the beginning of the middle copy.
-    useEffect(() => {
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({ y: baseNumbers.length * itemHeight, animated: false });
-      }
-    }, []);
-
-    // Convert the current index (from the infinite list) to a proper 24-hour value
-    const handleTimeChange = (index: number) => {
-      const baseCount = baseNumbers.length;
-      // Get the effective index within the 1-12 range
-      const effectiveIndex = ((index % baseCount) + baseCount) % baseCount;
-      let hour = parseInt(baseNumbers[effectiveIndex], 10);
-      // Convert to 24-hour format based on period
-      if (hour === 12 && period === 'AM') {
-        hour = 0;
-      } else if (hour !== 12 && period === 'PM') {
+    const handleScroll = () => {
+      if (!scrollViewRef.current) return;
+      const y = scrollViewRef.current.contentOffset.y;
+      const index = Math.round(y / itemHeight);
+      const selectedIndex = (index + 12 * halfVisibleItems) % 12;
+      let hour = selectedIndex + 1;
+      if (period === 'PM' && hour !== 12) {
         hour += 12;
+      } else if (period === 'AM' && hour === 12) {
+        hour = 0;
       }
       onChange(hour);
     };
 
-    // When scrolling stops, adjust the offset if needed to keep the loop seamless.
-    const onMomentumScrollEnd = (e: any) => {
-      const y = e.nativeEvent.contentOffset.y;
-      let index = Math.round(y / itemHeight);
-      const baseCount = baseNumbers.length;
-
-      // If user scrolls too close to the start or end, reposition to the middle copy.
-      if (index < baseCount) {
-        index += baseCount;
-        scrollViewRef.current?.scrollTo({ y: index * itemHeight, animated: false });
-      } else if (index >= baseCount * 2) {
-        index -= baseCount;
-        scrollViewRef.current?.scrollTo({ y: index * itemHeight, animated: false });
+    useEffect(() => {
+      if (scrollViewRef.current) {
+        const initialScrollPosition = (numbers.length * itemHeight) /2 - (itemHeight* halfVisibleItems);
+        scrollViewRef.current.scrollTo({ y: initialScrollPosition , animated: false });
       }
-      handleTimeChange(index);
-    };
+    }, []);
+
 
     return (
       <View style={styles.container}>
-        {/* Wheel with infinite looping */}
+        {/* Time wheel */}
         <View style={styles.wheelWrapper}>
+          <View style={styles.wheelOverlay}>
+            <View style={styles.wheelHighlight} />
+          </View>
           <ScrollView
             ref={scrollViewRef}
             showsVerticalScrollIndicator={false}
             snapToInterval={itemHeight}
             decelerationRate="fast"
-            style={[
-              styles.wheel,
-              Platform.select({
-                web: {
-                  overflowY: 'scroll',
-                  scrollSnapType: 'y mandatory',
-                },
-              }),
-            ]}
-            onMomentumScrollEnd={onMomentumScrollEnd}
+            onMomentumScrollEnd={handleScroll}
+            onScrollEndDrag={handleScroll}
             scrollEventThrottle={16}
+            style={styles.wheel}
           >
-            {loopedNumbers.map((num, index) => (
+            <View style={{ height: itemHeight * halfVisibleItems }} />
+            {numbers.map((num, index) => (
               <View
-                key={index}
+                key={`${num}-${index}`}
                 style={[
                   styles.wheelItem,
-                  // Optionally, you could add styling to the item that aligns
-                  // with the center of the wheel. For this demo, we mark the
-                  // very first item of the middle copy as selected.
-                  index === baseNumbers.length ? styles.selectedItem : null,
+                  { height: itemHeight }
                 ]}
               >
-                <Text
-                  style={[
-                    styles.wheelText,
-                    index === baseNumbers.length ? styles.selectedText : styles.unselectedText,
-                  ]}
-                >
+                <Text style={styles.wheelText}>
                   {num}
                 </Text>
               </View>
             ))}
+            <View style={{ height: itemHeight * halfVisibleItems }} />
           </ScrollView>
         </View>
 
@@ -727,33 +615,45 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   wheelWrapper: {
-    height: 150,
+    height: 250,
     width: 70,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 8,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
     overflow: 'hidden',
+    position: 'relative',
+  },
+  wheelOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+    pointerEvents: 'none',
+  },
+  wheelHighlight: {
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    height: 50,
+    transform: [{ translateY: -25 }],
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#007AFF',
   },
   wheel: {
     flex: 1,
   },
   wheelItem: {
-    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    scrollSnapAlign: 'center',
-  },
-  selectedItem: {
-    backgroundColor: '#E8F0FE',
   },
   wheelText: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '500',
-  },
-  selectedText: {
-    color: '#1a73e8',
-  },
-  unselectedText: {
-    color: '#9AA0A6',
+    color: '#8E8E93',
   },
   periodSelectorContainer: {
     height: 100,
@@ -906,4 +806,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F2F2F7',
   },
+  timeSeparator: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginHorizontal: 10,
+  }
 });
