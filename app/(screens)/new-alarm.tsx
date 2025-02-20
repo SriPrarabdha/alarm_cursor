@@ -677,6 +677,82 @@ async function saveRecordingWithName() {
             </Modal>
             )}
           </View>
+
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={isNamingModalVisible}
+            onRequestClose={() => setIsNamingModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Name Your Recording</Text>
+                <TextInput
+                  style={styles.input}
+                  value={newSoundName}
+                  onChangeText={setNewSoundName}
+                  placeholder="Enter sound name"
+                  autoFocus
+                />
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => {
+                      setIsNamingModalVisible(false);
+                      setNewSoundName('');
+                    }}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.saveButton]}
+                    onPress={saveRecordingWithName}
+                  >
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={isSavedSoundsModalVisible}
+            onRequestClose={() => setIsSavedSoundsModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={[styles.modalContent, styles.savedSoundsModal]}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Saved Sounds</Text>
+                  <TouchableOpacity 
+                    onPress={() => setIsSavedSoundsModalVisible(false)}
+                    style={styles.closeButton}
+                  >
+                    <Ionicons name="close" size={24} color="#000" />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView style={styles.savedSoundsList}>
+                  {savedSounds.map((sound, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.savedSoundItem}
+                      onPress={() => {
+                        setSelectedSound(sound.uri);
+                        setIsSavedSoundsModalVisible(false);
+                      }}
+                    >
+                      <Text style={styles.savedSoundName}>{sound.name}</Text>
+                      <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+                    </TouchableOpacity>
+                  ))}
+                  {savedSounds.length === 0 && (
+                    <Text style={styles.noSoundsText}>No saved sounds yet</Text>
+                  )}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
           
           {/* Add padding at the bottom to ensure content isn't hidden behind the save button */}
           <View style={styles.bottomPadding} />
