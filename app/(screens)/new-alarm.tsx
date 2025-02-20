@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch, Animated , Platform} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch, Animated, Platform, Modal, TextInput } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -416,38 +417,79 @@ export default function NewAlarm() {
     }
   }
 
-  async function stopRecording() {
-    if (!recording) return;
+  const [savedSounds, setSavedSounds] = useState<Array<{name: string, uri: string}>>([]);
+const [isNamingModalVisible, setIsNamingModalVisible] = useState(false);
+const [newSoundName, setNewSoundName] = useState('');
+const [tempRecordingUri, setTempRecordingUri] = useState<string | null>(null);
+const [isSavedSoundsModalVisible, setIsSavedSoundsModalVisible] = useState(false);
 
-    try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      
-      if (uri) {
-        const fileName = `recording-${Date.now()}.m4a`;
-        const destination = `${FileSystem.documentDirectory}sounds/${fileName}`;
+useEffect(() => {
+  loadSavedSounds();
+}, []);
 
-        // Create sounds directory if it doesn't exist
-        await FileSystem.makeDirectoryAsync(
-          `${FileSystem.documentDirectory}sounds/`,
-          { intermediates: true }
-        );
-
-        // Move recording to permanent location
-        await FileSystem.moveAsync({
-          from: uri,
-          to: destination
-        });
-
-        setSelectedSound(destination);
-        Alert.alert('Success', 'Recording saved successfully!');
-      }
-    } catch (error) {
-      console.error('Failed to stop recording:', error);
+async function loadSavedSounds() {
+  try {
+    const savedSoundsJson = await AsyncStorage.getItem('savedSounds');
+    if (savedSoundsJson) {
+      setSavedSounds(JSON.parse(savedSoundsJson));
     }
-
-    setRecording(null);
+  } catch (error) {
+    console.error('Error loading saved sounds:', error);
   }
+}
+
+async function stopRecording() {
+  if (!recording) return;
+
+  try {
+    await recording.stopAndUnloadAsync();
+    const uri = recording.getURI();
+    
+    if (uri) {
+      setTempRecordingUri(uri);
+      setIsNamingModalVisible(true);
+    }
+  } catch (error) {
+    console.error('Failed to stop recording:', error);
+  }
+
+  setRecording(null);
+}
+
+async function saveRecordingWithName() {
+  if (!tempRecordingUri || !newSoundName.trim()) return;
+
+  try {
+    const fileName = `${newSoundName.trim()}-${Date.now()}.m4a`;
+    const destination = `${FileSystem.documentDirectory}sounds/${fileName}`;
+
+    await FileSystem.makeDirectoryAsync(
+      `${FileSystem.documentDirectory}sounds/`,
+      { intermediates: true }
+    );
+
+    await FileSystem.moveAsync({
+      from: tempRecordingUri,
+      to: destination
+    });
+
+    const newSound = { name: newSoundName.trim(), uri: destination };
+    const updatedSounds = [...savedSounds, newSound];
+    
+    await AsyncStorage.setItem('savedSounds', JSON.stringify(updatedSounds));
+    setSavedSounds(updatedSounds);
+    setSelectedSound(destination);
+    
+    setIsNamingModalVisible(false);
+    setNewSoundName('');
+    setTempRecordingUri(null);
+    
+    Alert.alert('Success', 'Recording saved successfully!');
+  } catch (error) {
+    console.error('Failed to save recording:', error);
+    Alert.alert('Error', 'Failed to save recording');
+  }
+}
 
   function toggleDay(dayId: number) {
     setSelectedDays(prev => 
@@ -535,6 +577,14 @@ export default function NewAlarm() {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
+                  style={styles.soundButton}
+                  onPress={() => setIsSavedSoundsModalVisible(true)}
+                >
+                  <Ionicons name="library-outline" size={24} color="#007AFF" />
+                  <Text style={styles.buttonText}>Saved Sounds</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
                   style={[styles.soundButton, isRecording && styles.recording]}
                   onPress={handleRecordSound}
                 >
@@ -547,7 +597,85 @@ export default function NewAlarm() {
                     {isRecording ? "Stop Recording" : "Record Sound"}
                   </Text>
                 </TouchableOpacity>
+            </View>
+
+            {/* Naming Modal */}
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={isNamingModalVisible}
+              onRequestClose={() => setIsNamingModalVisible(false)}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Name Your Recording</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={newSoundName}
+                    onChangeText={setNewSoundName}
+                    placeholder="Enter sound name"
+                    autoFocus
+                  />
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.cancelButton]}
+                      onPress={() => {
+                        setIsNamingModalVisible(false);
+                        setNewSoundName('');
+                      }}
+                    >
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.saveButton]}
+                      onPress={saveRecordingWithName}
+                    >
+                      <Text style={styles.saveButtonText}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
+            </Modal>
+
+            {/* Saved Sounds Modal */}
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={isSavedSoundsModalVisible}
+              onRequestClose={() => setIsSavedSoundsModalVisible(false)}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={[styles.modalContent, styles.savedSoundsModal]}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Saved Sounds</Text>
+                    <TouchableOpacity 
+                      onPress={() => setIsSavedSoundsModalVisible(false)}
+                      style={styles.closeButton}
+                    >
+                      <Ionicons name="close" size={24} color="#000" />
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView style={styles.savedSoundsList}>
+                    {savedSounds.map((sound, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={styles.savedSoundItem}
+                        onPress={() => {
+                          setSelectedSound(sound.uri);
+                          setIsSavedSoundsModalVisible(false);
+                        }}
+                      >
+                        <Text style={styles.savedSoundName}>{sound.name}</Text>
+                        <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+                      </TouchableOpacity>
+                    ))}
+                    {savedSounds.length === 0 && (
+                      <Text style={styles.noSoundsText}>No saved sounds yet</Text>
+                    )}
+                  </ScrollView>
+                </View>
+              </View>
+            </Modal>
             )}
           </View>
           
@@ -570,6 +698,87 @@ export default function NewAlarm() {
 }
 
 const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  savedSoundsModal: {
+    height: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 20,
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#F2F2F7',
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+  },
+  cancelButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  closeButton: {
+    padding: 5,
+  },
+  savedSoundsList: {
+    flex: 1,
+  },
+  savedSoundItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  savedSoundName: {
+    fontSize: 16,
+    color: '#000',
+  },
+  noSoundsText: {
+    textAlign: 'center',
+    color: '#8E8E93',
+    marginTop: 20,
+    fontSize: 16,
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
