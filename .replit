@@ -1,0 +1,12 @@
+modules = ["nodejs-20"]
+run = "bunx expo"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "bunx expo"]
+
+[[ports]]
+localPort = 8081
+externalPort = 80
