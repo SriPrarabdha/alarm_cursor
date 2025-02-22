@@ -319,9 +319,11 @@ async function saveRecordingWithName() {
       <View style={styles.contentContainer}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           <View style={styles.timeContainer}>
-            <TimeWheel value={hours} max={23} onChange={setHours} />
-            <Text style={styles.timeSeparator}>:</Text>
-            <TimeWheel value={minutes} max={59} onChange={setMinutes} />
+            <View style={styles.timeWheelContainer}>
+              <TimeWheel value={hours} max={23} onChange={setHours} />
+              <Text style={styles.timeSeparator}>:</Text>
+              <TimeWheel value={minutes} max={59} onChange={setMinutes} />
+            </View>
           </View>
 
           <View style={styles.repeatSection}>
@@ -602,6 +604,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 40,
+  },
+  timeWheelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
   wheelContainer: {
     flexDirection: 'row',

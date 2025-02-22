@@ -8,41 +8,37 @@ const VISIBLE_ITEMS = 5;
 interface TimeWheelProps {
   value: number;
   onChange: (value: number) => void;
-  type: 'hour' | 'minute';
+  max: number;
 }
 
-export function TimeWheel({ value, onChange, type }: TimeWheelProps) {
+export function TimeWheel({ value, onChange, max }: TimeWheelProps) {
   const scrollViewRef = useRef<ScrollView>(null);
   
-  const numbers = type === 'hour'
-    ? Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'))
-    : Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
-
-  // Create a larger array for infinite scroll effect
+  const numbers = Array.from({ length: max + 1 }, (_, i) => i.toString().padStart(2, '0'));
   const items = [...numbers, ...numbers, ...numbers];
   
   useEffect(() => {
     if (scrollViewRef.current) {
-      const initialOffset = numbers.length * ITEM_HEIGHT;
-      scrollViewRef.current.scrollTo({ y: initialOffset, animated: false });
+      const targetY = (numbers.length + value) * ITEM_HEIGHT;
+      scrollViewRef.current.scrollTo({ y: targetY, animated: false });
     }
   }, []);
 
-  const handleMomentumScrollEnd = (event: any) => {
+  const handleScroll = (event: any) => {
     const y = event.nativeEvent.contentOffset.y;
     const index = Math.round(y / ITEM_HEIGHT);
     const normalizedIndex = index % numbers.length;
     
-    let newValue = type === 'hour' 
-      ? (normalizedIndex + 1 === 13 ? 1 : normalizedIndex + 1)
-      : normalizedIndex;
-
-    onChange(newValue);
+    if (normalizedIndex !== value) {
+      onChange(normalizedIndex);
+    }
 
     // Reset to middle section if we're at the edges
     if (index < numbers.length || index >= numbers.length * 2) {
       const newOffset = numbers.length * ITEM_HEIGHT + (normalizedIndex * ITEM_HEIGHT);
-      scrollViewRef.current?.scrollTo({ y: newOffset, animated: false });
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: newOffset, animated: false });
+      }, 10);
     }
   };
 
@@ -55,8 +51,8 @@ export function TimeWheel({ value, onChange, type }: TimeWheelProps) {
           showsVerticalScrollIndicator={false}
           snapToInterval={ITEM_HEIGHT}
           decelerationRate="fast"
-          onMomentumScrollEnd={handleMomentumScrollEnd}
-          onScrollEndDrag={handleMomentumScrollEnd}
+          onMomentumScrollEnd={handleScroll}
+          onScrollEndDrag={handleScroll}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
         >
@@ -79,7 +75,7 @@ export function TimeWheel({ value, onChange, type }: TimeWheelProps) {
 const styles = StyleSheet.create({
   container: {
     width: 70,
-    height: 250,
+    height: ITEM_HEIGHT * VISIBLE_ITEMS,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -123,5 +119,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#007AFF',
     zIndex: 1,
+    pointerEvents: 'none',
   },
 });
