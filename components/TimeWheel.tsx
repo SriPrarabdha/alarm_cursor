@@ -74,7 +74,7 @@ export function TimeWheel({ value, onChange, max }: TimeWheelProps) {
 
 const styles = StyleSheet.create({
   container: {
-    width: 70,
+    width: 100,
     height: ITEM_HEIGHT * VISIBLE_ITEMS,
     justifyContent: 'center',
     alignItems: 'center',
