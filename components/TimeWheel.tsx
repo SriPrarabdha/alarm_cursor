@@ -55,6 +55,11 @@ export function TimeWheel({ value, onChange, max }: TimeWheelProps) {
           onScrollEndDrag={handleScroll}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          scrollEventThrottle={16}
+          pagingEnabled={false}
+          nestedScrollEnabled={true}
+          overScrollMode="never"
+          keyboardShouldPersistTaps="handled"
         >
           {items.map((num, index) => (
             <View key={`${num}-${index}`} style={styles.item}>

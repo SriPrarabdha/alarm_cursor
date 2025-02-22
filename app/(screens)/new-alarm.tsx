@@ -53,7 +53,6 @@ export default function NewAlarm() {
     }
 
     try {
-      // Create the alarm object
       const alarm = {
         hours,
         minutes,
@@ -61,20 +60,22 @@ export default function NewAlarm() {
         enabled: true,
         id: Date.now().toString(),
         repeatDays: selectedDays,
+        time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
       };
 
-      // Here you would save the alarm to AsyncStorage or your preferred storage
-      // For example:
-      // const existingAlarms = await AsyncStorage.getItem('alarms');
-      // const alarms = existingAlarms ? JSON.parse(existingAlarms) : [];
-      // alarms.push(alarm);
-      // await AsyncStorage.setItem('alarms', JSON.stringify(alarms));
+      const existingAlarmsJson = await AsyncStorage.getItem('alarms');
+      const existingAlarms = existingAlarmsJson ? JSON.parse(existingAlarmsJson) : [];
+      const updatedAlarms = [...existingAlarms, alarm];
+      
+      await AsyncStorage.setItem('alarms', JSON.stringify(updatedAlarms));
       await scheduleAlarmNotification(hours, minutes, selectedSound, selectedDays);
-      Alert.alert('Success', 'Alarm saved!');
-      router.back();
+      
+      Alert.alert('Success', 'Alarm saved!', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
     } catch (error) {
       console.error('Error saving alarm:', error);
-      Alert.alert('Error', 'Failed to save alarm');
+      Alert.alert('Error', 'Failed to save alarm. Please try again.');
     }
   }
 
