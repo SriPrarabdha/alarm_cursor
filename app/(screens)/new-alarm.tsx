@@ -401,7 +401,7 @@ async function saveRecordingWithName() {
                     {isRecording ? "Stop Recording" : "Record Sound"}
                   </Text>
                 </TouchableOpacity>
-            </View>
+              </View>
             )}
           </View>
 
